@@ -1,6 +1,6 @@
 ﻿cmake_minimum_required (VERSION 3.8)
 
-project ("NapCatNative")
+project (NapCatNative)
 
 if (POLICY CMP0141)
   cmake_policy(SET CMP0141 NEW)
@@ -27,9 +27,7 @@ include_directories("${CMAKE_SOURCE_DIR}/node_modules/node-api-headers/include")
 
 
 file(GLOB SOURCE_FILES "./src/*.cpp")
-file(GLOB HEADER_FILES "./include/*.h")
-
-add_executable (NapCatNative SOURCE_FILES HEADER_FILES)
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/include/")
 
 add_library(${PROJECT_NAME} SHARED ${SOURCE_FILES} ${CMAKE_JS_SRC})
 
