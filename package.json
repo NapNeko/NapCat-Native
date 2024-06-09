@@ -1,14 +1,13 @@
 {
   "name": "napcat.native",
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "description": "NapCat.Native",
   "scripts": {
-    "install": "cmake-js compile",
-    "rebuild": "cmake-js rebuild"
-  },
-  "binary": {
-    "napi_versions": [7]
+    "build": "npx node-gyp build",
+    "rebuild": "npx node-gyp rebuild",
+    "configure": "npx node-gyp configure"
   },
   "dependencies": {
-    "cmake-js": "^7.3.0"
+    "node-gyp": "^10.1.0"
   }
 }
