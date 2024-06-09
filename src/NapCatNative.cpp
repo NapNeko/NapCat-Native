@@ -1,12 +1,8 @@
-﻿// NapCatNative.cpp: 定义应用程序的入口点。
-//
-
-#include "NapCatNative.h"
-
-using namespace std;
-
-int main()
+﻿#include "NapCatNative.h"
+namespace NapCatNative
 {
-	cout << "Hello CMake." << endl;
-	return 0;
+	// 映射原对象调用到JS对象
+	void CreateProxy()
+	{
+	}
 }
