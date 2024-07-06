@@ -1,5 +1,7 @@
 ﻿#include <v8.h>
 #include <node.h>
+#include <WinSock2.h>
+#include <Windows.h>
 #include <uv.h>
 int RunNodeInstance(node::MultiIsolatePlatform *platform,
                     const std::vector<std::string> &args,
@@ -96,7 +98,7 @@ int RunNodeInstance(node::MultiIsolatePlatform *platform,
   return exit_code;
 }
 
-int BootNapCat(int argc, char **argv)
+int NapCatBoot(int argc, char **argv)
 {
   argv = uv_setup_args(argc, argv);
   std::vector<std::string> args(argv, argv + argc);
@@ -117,7 +119,31 @@ int BootNapCat(int argc, char **argv)
   // 此函数的内容见下文。
   int ret = RunNodeInstance(platform.get(), args, exec_args);
   // 不用回收了 直接继续
-  // v8::V8::Dispose();
+  v8::V8::Dispose();
   // v8::V8::ShutdownPlatform();
   return ret;
+}
+bool NapCatRouterConsole()
+{
+  AllocConsole();
+  freopen("CONOUT$", "w+t", stdout);
+  freopen("CONOUT$", "w+t", stderr);
+  freopen("CONIN$", "r+t", stdin);
+  return true;
+}
+int NapCatWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
+{
+  int pNumArgs = 0;   // argc
+  char str[MAX_PATH]; // argv
+  NapCatRouterConsole();
+  LPWSTR CommandLineW = GetCommandLineW();
+  auto lpszArgv = CommandLineToArgvW(CommandLineW, &pNumArgs);
+
+  for (int i = 0; i < pNumArgs; i++)
+  {
+
+    memset(str, 0, MAX_PATH);
+    WideCharToMultiByte(CP_ACP, WC_COMPOSITECHECK, lpszArgv[i], -1, str, 200, NULL, NULL);
+  }
+  return NapCatBoot(pNumArgs, (char **)&str);
 }
