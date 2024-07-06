@@ -12,21 +12,20 @@ extern bool NapCatInit();
 bool inited = NapCatInit();
 std::unique_ptr<node::InitializationResult> (*nodeInitializeOncePerProcess)(const std::vector<std::string> &, node::ProcessInitializationFlags::Flags);
 
-using  NodeTypeCreatEnvironment = node::Environment *(*)(
-    node::IsolateData *,
-    v8::Local<v8::Context>,
-    const std::vector<std::string> &,
-    const std::vector<std::string> &,
-    node::EnvironmentFlags::Flags, node::ThreadId,
-    std::unique_ptr<node::InspectorParentHandle>);
-using NodeTypeLoadEnvironment = v8::MaybeLocal<v8::Value> (*)(node::Environment* env, std::string_view main_script_source_utf8);
-  
+using NodeTypeCreatEnvironment = node::Environment *(*)(node::IsolateData *,
+                                                        v8::Local<v8::Context>,
+                                                        const std::vector<std::string> &,
+                                                        const std::vector<std::string> &,
+                                                        node::EnvironmentFlags::Flags, node::ThreadId,
+                                                        std::unique_ptr<node::InspectorParentHandle>);
+using NodeTypeLoadEnvironment = v8::MaybeLocal<v8::Value> (*)(node::Environment *env, std::string_view main_script_source_utf8);
+
 NodeTypeCreatEnvironment node_create_environment = nullptr;
 NodeTypeLoadEnvironment node_load_environment = nullptr;
 void test()
 {
   node_create_environment = (NodeTypeCreatEnvironment)GetProcAddress(GetModuleHandle(0), "?CreateEnvironment@node@@YAPEAVEnvironment@1@PEAVIsolateData@1@V?$Local@VContext@v8@@@v8@@AEBV?$vector@V?$basic_string@DU?$char_traits@D@__Cr@std@@V?$allocator@D@23@@__Cr@std@@V?$allocator@V?$basic_string@DU?$char_traits@D@__Cr@std@@V?$allocator@D@23@@__Cr@std@@@23@@__Cr@std@@2W4Flags@EnvironmentFlags@1@UThreadId@1@V?$unique_ptr@UInspectorParentHandle@node@@U?$default_delete@UInspectorParentHandle@node@@@__Cr@std@@@78@@Z");
-  node_load_environment = (NodeTypeLoadEnvironment)(GetModuleHandle(0), "?LoadEnvironment@node@@YA?AV?$MaybeLocal@VValue@v8@@@v8@@PEAVEnvironment@1@V?$function@$$A6A?AV?$MaybeLocal@VValue@v8@@@v8@@AEBUStartExecutionCallbackInfo@node@@@Z@__Cr@std@@V?$function@$$A6AXPEAVEnvironment@node@@V?$Local@VValue@v8@@@v8@@1@Z@67@@Z");
+  node_load_environment = (NodeTypeLoadEnvironment)GetProcAddress(GetModuleHandle(0), "?LoadEnvironment@node@@YA?AV?$MaybeLocal@VValue@v8@@@v8@@PEAVEnvironment@1@V?$function@$$A6A?AV?$MaybeLocal@VValue@v8@@@v8@@AEBUStartExecutionCallbackInfo@node@@@Z@__Cr@std@@V?$function@$$A6AXPEAVEnvironment@node@@V?$Local@VValue@v8@@@v8@@1@Z@67@@Z");
   GetProcAddress(GetModuleHandle(0), "?Create@ArrayBufferAllocator@node@@SA?AV?$unique_ptr@VArrayBufferAllocator@node@@U?$default_delete@VArrayBufferAllocator@node@@@__Cr@std@@@__Cr@std@@_N@Z");
   GetProcAddress(GetModuleHandle(0), "?Create@MultiIsolatePlatform@node@@SA?AV?$unique_ptr@VMultiIsolatePlatform@node@@U?$default_delete@VMultiIsolatePlatform@node@@@__Cr@std@@@__Cr@std@@HPEAVTracingController@v8@@PEAVPageAllocator@7@@Z");
   GetProcAddress(GetModuleHandle(0), "?InitializeOncePerProcess@node@@YA?AV?$unique_ptr@VInitializationResult@node@@U?$default_delete@VInitializationResult@node@@@__Cr@std@@@__Cr@std@@AEBV?$vector@V?$basic_string@DU?$char_traits@D@__Cr@std@@V?$allocator@D@23@@__Cr@std@@V?$allocator@V?$basic_string@DU?$char_traits@D@__Cr@std@@V?$allocator@D@23@@__Cr@std@@@23@@34@W4Flags@ProcessInitializationFlags@1@@Z");
@@ -204,9 +203,9 @@ int RunNodeInstance(node::MultiIsolatePlatform *platform,
     v8::Context::Scope context_scope(context);
 
     std::unique_ptr<node::Environment, decltype(&node::FreeEnvironment)> env(
-        node::CreateEnvironment(isolate_data.get(), context, args, exec_args),
+        node_create_environment(isolate_data.get(), context, args, exec_args, node::EnvironmentFlags::kDefaultFlags, {}, {}),
         node::FreeEnvironment);
-    v8::MaybeLocal<v8::Value> loadenv_ret = node::LoadEnvironment(
+    v8::MaybeLocal<v8::Value> loadenv_ret = node_load_environment(
         env.get(),
         "const publicRequire ="
         "  require('module').createRequire(process.cwd() + '/');"
