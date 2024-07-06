@@ -6,11 +6,11 @@
 #include <iostream>
 #include <algorithm>
 #include <codecvt>
-
+//要不还是跑路吧 这么写有点逆天
 int(__stdcall *oriWinMain)(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd);
 extern bool NapCatInit();
 bool inited = NapCatInit();
-std::unique_ptr<node::InitializationResult> (*nodeInitializeOncePerProcess)(const std::vector<std::string> &, node::ProcessInitializationFlags::Flags);
+using NodeTypeInitializeOncePerProcess = std::unique_ptr<node::InitializationResult> (*)(const std::vector<std::string> &, node::ProcessInitializationFlags::Flags);
 
 using NodeTypeCreatEnvironment = node::Environment *(*)(node::IsolateData *,
                                                         v8::Local<v8::Context>,
@@ -26,6 +26,7 @@ using NodeTypeNewIsolate = v8::Isolate *(*)(std::shared_ptr<node::ArrayBufferAll
                                             node::MultiIsolatePlatform *,
                                             const node::EmbedderSnapshotData *,
                                             const node::IsolateSettings &);
+NodeTypeInitializeOncePerProcess node_initialize_once_per_process = nullptr;
 NodeTypeCreatEnvironment node_create_environment = nullptr;
 NodeTypeLoadEnvironment node_load_environment = nullptr;
 NodeTypeNewIsolate node_new_isolate = nullptr;
@@ -274,9 +275,11 @@ int NapCatBoot(int argc, char *argv[])
                node::ProcessInitializationFlags::kNoInitializeNodeV8Platform};
   for (const auto flag : list)
     flags_accum |= static_cast<uint64_t>(flag);
-  std::unique_ptr<node::InitializationResult> result = node::InitializeOncePerProcess(args, static_cast<node::ProcessInitializationFlags::Flags>(flags_accum));
+
+  std::unique_ptr<node::InitializationResult> result = node_initialize_once_per_process(args, static_cast<node::ProcessInitializationFlags::Flags>(flags_accum));
 
   MessageBoxA(0, "123", "123456", 0);
+
   std::unique_ptr<node::MultiIsolatePlatform> platform = node::MultiIsolatePlatform::Create(4);
   MessageBoxA(0, "123", "12345", 0);
   v8::V8::InitializePlatform(platform.get());
@@ -311,6 +314,7 @@ bool NapCatInit()
 {
   uint64_t baseAddr = 0;
   HMODULE wrapperModule = GetModuleHandleW(NULL);
+  test();
   if (wrapperModule == NULL)
     throw std::runtime_error("Can't GetModuleHandle");
   baseAddr = reinterpret_cast<uint64_t>(wrapperModule);
@@ -322,6 +326,6 @@ bool NapCatInit()
   if (oriWinMain == NULL)
     throw std::runtime_error("error");
   std::cout << "hook success" << std::endl;
-  nodeInitializeOncePerProcess = reinterpret_cast<std::unique_ptr<node::InitializationResult> (*)(const std::vector<std::string> &, node::ProcessInitializationFlags::Flags)>(baseAddr + 0x1FFF8A1);
+  node_initialize_once_per_process = reinterpret_cast<std::unique_ptr<node::InitializationResult> (*)(const std::vector<std::string> &, node::ProcessInitializationFlags::Flags)>(baseAddr + 0x1FFF8A1);
   return moehoo::hook(abscallptr, &NapCatWinMain);
 }
