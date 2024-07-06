@@ -4,10 +4,13 @@
 #include <Windows.h>
 #include <uv.h>
 #include <iostream>
+#include <algorithm>
+#include <codecvt>
 
 int(__stdcall *oriWinMain)(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd);
 extern bool NapCatInit();
 bool inited = NapCatInit();
+std::unique_ptr<node::InitializationResult> (*nodeInitializeOncePerProcess)(const std::vector<std::string> &, node::ProcessInitializationFlags::Flags);
 
 extern "C" __declspec(dllexport) void StackWalk64() {}
 extern "C" __declspec(dllexport) void SymCleanup() {}
@@ -232,29 +235,48 @@ int RunNodeInstance(node::MultiIsolatePlatform *platform,
   return exit_code;
 }
 
-int NapCatBoot(int argc, char **argv)
+int NapCatBoot(int argc, char *argv[])
 {
+  MessageBoxA(0, *argv, std::to_string(argc).c_str(), 0);
   argv = uv_setup_args(argc, argv);
   std::vector<std::string> args(argv, argv + argc);
-  std::vector<std::string> exec_args;
-  std::vector<std::string> errors;
-  int exit_code = node::InitializeNodeWithArgs(&args, &exec_args, &errors);
-  for (const std::string &error : errors)
-    fprintf(stderr, "%s: %s\n", args[0].c_str(), error.c_str());
-  if (exit_code != 0)
-  {
-    return exit_code;
-  }
+  // 解析 Node.js 命令行选项，
+  // 并打印尝试解析它们时发生的任何错误。
+  MessageBoxA(0, "123", "1234567890", 0);
+  uint64_t flags_accum = node::ProcessInitializationFlags::kNoFlags;
+  auto list = {node::ProcessInitializationFlags::kNoInitializeV8,
+               node::ProcessInitializationFlags::kNoInitializeNodeV8Platform};
+  for (const auto flag : list)
+    flags_accum |= static_cast<uint64_t>(flag);
 
+  std::unique_ptr<node::InitializationResult> result = nodeInitializeOncePerProcess(args, static_cast<node::ProcessInitializationFlags::Flags>(flags_accum));
+  MessageBoxA(0, "123", "1234567", 0);
+  for (const std::string &error : result->errors())
+    fprintf(stderr, "%s: %s\n", args[0].c_str(), error.c_str());
+  MessageBoxA(0, "123", "1234568", 0);
+  if (result->early_return() != 0)
+  {
+    MessageBoxA(0, "123", "12", 0);
+    return result->exit_code();
+  }
+  // 创建 v8::Platform 实例。
+  // `MultiIsolatePlatform::Create()` 是一种创建 v8::Platform 实例的方法，Node.js 在创建时可以使用它
+  // 工作线程。当没有 `MultiIsolatePlatform` 实例时，
+  // 工作线程被禁用。
+  MessageBoxA(0, "123", "123456", 0);
   std::unique_ptr<node::MultiIsolatePlatform> platform = node::MultiIsolatePlatform::Create(4);
+  MessageBoxA(0, "123", "12345", 0);
   v8::V8::InitializePlatform(platform.get());
   v8::V8::Initialize();
-
+  MessageBoxA(0, "123", "123", 0);
   // 此函数的内容见下文。
-  int ret = RunNodeInstance(platform.get(), args, exec_args);
-  // 不用回收了 直接继续
+  int ret = RunNodeInstance(
+      platform.get(), result->args(), result->exec_args());
+  MessageBoxA(0, "123", "1234", 0);
   v8::V8::Dispose();
-  // v8::V8::ShutdownPlatform();
+  v8::V8::DisposePlatform();
+
+  node::TearDownOncePerProcess();
   return ret;
 }
 bool NapCatRouterConsole()
@@ -267,19 +289,10 @@ bool NapCatRouterConsole()
 }
 extern "C" __declspec(dllexport) int NapCatWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
 {
-  int pNumArgs = 0;   // argc
-  char str[MAX_PATH]; // argv
   NapCatRouterConsole();
-  LPWSTR CommandLineW = GetCommandLineW();
-  auto lpszArgv = CommandLineToArgvW(CommandLineW, &pNumArgs);
-
-  for (int i = 0; i < pNumArgs; i++)
-  {
-
-    memset(str, 0, MAX_PATH);
-    WideCharToMultiByte(CP_ACP, WC_COMPOSITECHECK, lpszArgv[i], -1, str, 200, NULL, NULL);
-  }
-  return NapCatBoot(pNumArgs, (char **)&str);
+  char *iagrv = new char[30]{"D:\\AppD\\QQNT\\QQ.exe --version"};
+  char **argv = &iagrv;
+  return NapCatBoot(1, argv);
 }
 bool NapCatInit()
 {
@@ -291,7 +304,11 @@ bool NapCatInit()
   printf("baseAddr: %llx\n", baseAddr);
   if (baseAddr == 0)
     throw std::runtime_error("Can't find hook address");
-  uint8_t *abscallptr = reinterpret_cast<uint8_t *>(baseAddr + 0x01FAE20);
+  uint8_t *abscallptr = reinterpret_cast<uint8_t *>(baseAddr + 0x457A8AD);
   oriWinMain = reinterpret_cast<int(__stdcall *)(HINSTANCE, HINSTANCE, LPSTR, int)>(moehoo::get_call_address(abscallptr));
+  if (oriWinMain == NULL)
+    throw std::runtime_error("error");
+  std::cout << "hook success" << std::endl;
+  nodeInitializeOncePerProcess = reinterpret_cast<std::unique_ptr<node::InitializationResult> (*)(const std::vector<std::string> &, node::ProcessInitializationFlags::Flags)>(baseAddr + 0x1FFF8A1);
   return moehoo::hook(abscallptr, &NapCatWinMain);
 }
