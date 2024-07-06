@@ -243,26 +243,14 @@ int NapCatBoot(int argc, char *argv[])
   // 解析 Node.js 命令行选项，
   // 并打印尝试解析它们时发生的任何错误。
   MessageBoxA(0, "123", "1234567890", 0);
+
   uint64_t flags_accum = node::ProcessInitializationFlags::kNoFlags;
   auto list = {node::ProcessInitializationFlags::kNoInitializeV8,
                node::ProcessInitializationFlags::kNoInitializeNodeV8Platform};
   for (const auto flag : list)
     flags_accum |= static_cast<uint64_t>(flag);
+  std::unique_ptr<node::InitializationResult> result = node::InitializeOncePerProcess(args, static_cast<node::ProcessInitializationFlags::Flags>(flags_accum));
 
-  std::unique_ptr<node::InitializationResult> result = nodeInitializeOncePerProcess(args, static_cast<node::ProcessInitializationFlags::Flags>(flags_accum));
-  MessageBoxA(0, "123", "1234567", 0);
-  for (const std::string &error : result->errors())
-    fprintf(stderr, "%s: %s\n", args[0].c_str(), error.c_str());
-  MessageBoxA(0, "123", "1234568", 0);
-  if (result->early_return() != 0)
-  {
-    MessageBoxA(0, "123", "12", 0);
-    return result->exit_code();
-  }
-  // 创建 v8::Platform 实例。
-  // `MultiIsolatePlatform::Create()` 是一种创建 v8::Platform 实例的方法，Node.js 在创建时可以使用它
-  // 工作线程。当没有 `MultiIsolatePlatform` 实例时，
-  // 工作线程被禁用。
   MessageBoxA(0, "123", "123456", 0);
   std::unique_ptr<node::MultiIsolatePlatform> platform = node::MultiIsolatePlatform::Create(4);
   MessageBoxA(0, "123", "12345", 0);

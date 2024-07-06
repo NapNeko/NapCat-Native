@@ -3,11 +3,16 @@
   "version": "1.0.0",
   "description": "NapCat.Native",
   "scripts": {
+    "rebuild2": "electron-rebuild -f -w loader",
     "build": "npx node-gyp build",
     "rebuild": "npx node-gyp rebuild",
     "configure": "npx node-gyp configure"
   },
   "dependencies": {
+    "electron": "^28.0.0",
     "node-gyp": "^10.1.0"
+  },
+  "devDependencies": {
+    "@electron/rebuild": "^3.6.0"
   }
 }
